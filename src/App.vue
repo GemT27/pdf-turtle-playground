@@ -27,14 +27,14 @@
           <q-item-section avatar>
             <q-icon :name="mdiApplicationBracketsOutline" />
           </q-item-section>
-          <q-item-section>Playground</q-item-section>
+          <q-item-section>设计器</q-item-section>
         </q-item>
 
         <q-item clickable v-ripple :to="aboutRoute" class="item" active-class="item-selected">
           <q-item-section avatar>
             <q-icon :name="mdiInformationOutline" />
           </q-item-section>
-          <q-item-section>About</q-item-section>
+          <q-item-section>关于</q-item-section>
         </q-item>
       </q-list>
 
@@ -49,22 +49,7 @@
           <q-item-section avatar>
             <q-icon :name="mdiGithub" />
           </q-item-section>
-          <q-item-section>Github</q-item-section>
-        </q-item>
-        <q-separator />
-        <q-item clickable class="item" @click="toggleTheme()">
-          <q-item-section avatar>
-            <q-icon v-if="!themeIsDark" :name="mdiWeatherSunny" />
-            <q-icon v-else :name="mdiWeatherNight" />
-          </q-item-section>
-          <q-item-section>
-            <template v-if="themeIsDark">
-              Enable light theme
-            </template>
-            <template v-else>
-              Enable dark theme
-            </template>
-          </q-item-section>
+          <q-item-section>源码</q-item-section>
         </q-item>
       </q-list>
     </q-drawer>
@@ -121,20 +106,15 @@
   background-color: rgba(255, 255, 255, 0.7) !important;
   backdrop-filter: blur(4px);
 }
-.body--dark .q-menu {
-  background-color: rgba(29, 29, 29, 0.7) !important;
-}
 </style>
 
 <script lang="ts">
-import { defineComponent, computed, provide, watch, ref } from "vue"
+import { defineComponent, provide, ref } from "vue"
 import { routeNames } from "./router"
 import { useQuasar } from "quasar"
 
 import {
   mdiApplicationBracketsOutline,
-  mdiWeatherSunny,
-  mdiWeatherNight,
   mdiInformationOutline,
   mdiTortoise,
   mdiGithub,
@@ -150,42 +130,19 @@ export default defineComponent({
   setup() {
     const $q = useQuasar()
 
-    // Theming
-    const browserDarkMode = window.matchMedia("(prefers-color-scheme: dark)")?.matches || false
-    const getStoredUserSelectedDark = () => {
-      const dark = localStorage.getItem(localStorageIsDarkThemeKey)
-      if (dark === null) {
-        return null
-      } else {
-        return dark.toLowerCase() === "true"
-      }
-    }
-    const userSelectedDark = ref(getStoredUserSelectedDark())
-    const themeIsDark = computed(() => (userSelectedDark.value === null ? browserDarkMode : userSelectedDark.value))
-
-    watch(themeIsDark, (isDark) => $q.dark.set(isDark))
-    $q.dark.set(themeIsDark.value)
-
-    const toggleTheme = () => {
-      userSelectedDark.value = !themeIsDark.value
-      localStorage.setItem(localStorageIsDarkThemeKey, themeIsDark.value ? "true" : "false")
-    }
-
+    const themeIsDark = ref(false)
+    $q.dark.set(false)
+    localStorage.setItem(localStorageIsDarkThemeKey, "false")
     provide("themeIsDark", themeIsDark)
 
     const miniState = ref(true)
 
     return {
-      themeIsDark,
-      userSelectedDark,
-      toggleTheme,
       playgroundRoute: { name: routeNames.Playground },
       aboutRoute: { name: routeNames.About },
       miniState,
       swaggerUrl: `${serverBaseUrl}/swagger/index.html`,
       mdiApplicationBracketsOutline,
-      mdiWeatherSunny,
-      mdiWeatherNight,
       mdiInformationOutline,
       mdiTortoise,
       mdiCodeBraces,

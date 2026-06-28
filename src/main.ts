@@ -1,10 +1,13 @@
 import { createApp } from "vue"
 import { Quasar, QuasarPluginOptions } from "quasar"
 import quasarIconSet from "quasar/icon-set/svg-mdi-v6"
+import ElementPlus from "element-plus"
+import zhCn from "element-plus/es/locale/lang/zh-cn"
 
 import { router } from "./router"
 
 import "quasar/src/css/index.sass"
+import "element-plus/dist/index.css"
 
 import App from "./App.vue"
 
@@ -22,6 +25,9 @@ createApp(App)
     iconSet: quasarIconSet,
     plugins: {},
     config: {},
+  })
+  .use(ElementPlus, {
+    locale: zhCn,
   })
   .use(router)
   .mount("#app")

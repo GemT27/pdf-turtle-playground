@@ -1,10 +1,22 @@
 import { getBaseRenderData, RenderTemplateDataViewModel } from "@/models/render-data-base"
 import { RequestError } from "@/models/request-error"
-import { postApiPdfFromHtmlBundleRender } from "@/swagger-client"
+import { client } from "@/swagger-client/client.gen"
 import { createDebounce } from "@/utils/debounce"
 import { AxiosError, CanceledError } from "axios"
 import { reactive, ref, watch, computed } from "vue"
-import { packBundle } from "./bundle-handling"
+
+type RenderHtmlBundleTemplatePayload = {
+  htmlTemplate: string
+  headerHtmlTemplate?: string
+  footerHtmlTemplate?: string
+  model?: string
+  options: RenderTemplateDataViewModel["options"]
+  assets?: {
+    name: string
+    contentBase64: string
+    contentType?: string
+  }[]
+}
 
 export interface RenderLogEntry {
   source: string
@@ -57,32 +69,24 @@ export function usePdfRendering() {
       renderLog.value = []
       renderLogTruncated.value = false
 
-      const zipBlob = await packBundle({
-        ...renderTemplateData,
-        options: {
-          ...renderTemplateData.options,
-          includeRenderLog: true,
-        },
-      })
-
       const startTime = new Date().getTime()
 
-      const res = await postApiPdfFromHtmlBundleRender({
-        body: {
-          bundle: zipBlob,
-          model: renderTemplateData.modelStr,
-          templateEngine: renderTemplateData.templateEngine,
+      const res = await client.instance.request<Blob>({
+        method: "post",
+        url: "/api/pdf/from/html-bundle/render-template",
+        data: await createTemplatePayload(renderTemplateData),
+        headers: {
+          "Content-Type": "application/json",
+          ...(!settings.secret ? undefined : { Authorization: `Bearer ${settings.secret}` }),
         },
-        throwOnError: true,
+        baseURL: settings.serverUrl || client.getConfig().baseURL || undefined,
+        responseType: "blob",
         signal: abortController.signal,
-        ...(settings.serverUrl ? { baseURL: settings.serverUrl } : {}),
-        ...(settings.secret ? { headers: { Authorization: `Bearer ${settings.secret}` } } : {}),
       })
 
       requestTimeInMs.value = new Date().getTime() - startTime
       renderLog.value = parseRenderLogHeader(getHeader(res.headers, renderLogHeaderName))
       renderLogTruncated.value = getHeader(res.headers, renderLogTruncatedHeaderName) === "true"
-
       pdfResponseDataUrl.value = URL.createObjectURL(res.data)
     } catch (e) {
       if (e instanceof CanceledError) {
@@ -123,6 +127,35 @@ export function usePdfRendering() {
     pdfResponseDataUrl,
     requestPdf,
   }
+}
+
+async function createTemplatePayload(data: RenderTemplateDataViewModel): Promise<RenderHtmlBundleTemplatePayload> {
+  return {
+    htmlTemplate: data.htmlTemplate ?? "",
+    headerHtmlTemplate: data.headerHtmlTemplate || undefined,
+    footerHtmlTemplate: data.footerHtmlTemplate || undefined,
+    model: data.modelStr || undefined,
+    options: {
+      ...data.options,
+      includeRenderLog: true,
+    },
+    assets: await Promise.all(
+      data.assets.map(async (asset) => ({
+        name: asset.name,
+        contentBase64: await blobToDataUrl(asset.blob),
+        contentType: asset.blob.type || undefined,
+      }))
+    ),
+  }
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "")
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
 }
 
 function getHeader(headers: unknown, name: string): string | undefined {
