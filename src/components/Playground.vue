@@ -1831,6 +1831,7 @@ function createBodyTemplate() {
       background: #f8fafc;
     }
     .code-block svg {
+      display: block;
       width: 100%;
       height: 100%;
     }

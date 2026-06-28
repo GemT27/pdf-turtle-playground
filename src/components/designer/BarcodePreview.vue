@@ -44,6 +44,9 @@ watch(
         height: props.height,
         margin: 0,
       })
+      barcodeSvg.value.setAttribute("preserveAspectRatio", "none")
+      barcodeSvg.value.setAttribute("width", "100%")
+      barcodeSvg.value.setAttribute("height", "100%")
     } catch {
       barcodeSvg.value.replaceChildren()
       errorText.value = `当前内容不符合 ${props.format || "CODE128"}`
